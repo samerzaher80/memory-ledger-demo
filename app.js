@@ -1,0 +1,9 @@
+import {createStore,assess} from './engine.js';
+const store=createStore(); const $=id=>document.getElementById(id);
+let selected='m2';
+function render(){const rows=store.read(); $('rows').replaceChildren(...rows.map(x=>{const b=document.createElement('button');b.className='row'+(selected===x.id?' selected':'')+(x.status==='revoked'?' revoked':'');b.innerHTML=`<span class="row-head"><strong>${x.key.replaceAll('-',' ')}</strong><em>${x.status.toUpperCase()}</em></span><span class="row-value"></span><small></small>`;b.querySelector('.row-value').textContent=x.private?'[private value redacted]':x.value;b.querySelector('small').textContent=`${x.source} · ${x.scope} · ${Math.round(x.confidence*100)}%`;b.onclick=()=>{selected=x.id;render()};return b}));
+const [key,scope]=$('question').value.split('|');const result=assess(rows,key,scope);const box=$('answer');box.className='answer '+result.status;box.replaceChildren();const status=document.createElement('p');status.className='status';status.textContent=result.status.toUpperCase();const decision=document.createElement('h2');decision.textContent=result.decision;const reason=document.createElement('p');reason.textContent=result.reason;const evidence=document.createElement('small');evidence.textContent=`${result.evidence.length} matching source${result.evidence.length===1?'':'s'} · scope: ${scope}`;box.append(status,decision,reason,evidence)}
+$('retrieve').onclick=render;$('question').onchange=render;
+$('revoke').onclick=()=>{store.revoke(selected);render()};
+$('correct').onclick=()=>{const rows=store.read().map(x=>x.key==='preferred-window'&&x.scope==='Order A17'?{...x,status:'revoked'}:x);rows.push({id:'m5',key:'preferred-window',value:'Afternoon delivery window',source:'Customer confirmation · 27 Sep',confidence:1,observedAt:'2026-09-27',scope:'Order A17',status:'active'});store.write(rows);selected='m5';render()};
+$('reset').onclick=()=>{store.reset();selected='m2';render()};render();
