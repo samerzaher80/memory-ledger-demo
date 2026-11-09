@@ -8,13 +8,13 @@ export const seed = [
 export function createStore(storage = globalThis.localStorage) {
   const read = () => { try { const v=JSON.parse(storage.getItem(STORE)); return Array.isArray(v)?v:structuredClone(seed); } catch { return structuredClone(seed); } };
   const write = rows => { storage.setItem(STORE,JSON.stringify(rows)); return rows; };
-  return {read,write,reset:()=>write(structuredClone(seed)),revoke:id=>write(read().map(x=>x.id===id?{...x,status:'revoked'}:x)),add:fact=>write([...read(),fact])};
+  return {read,write,reset:()=>write(structuredClone(seed)),revoke:id=>write(read().map(x=>x.id===id?{...x,status:'revoked'}:x)),purge:id=>write(read().map(x=>x.id===id?{id:x.id,status:'purged'}:x)),add:fact=>write([...read(),fact])};
 }
 export function assess(rows, key, scope, now='2026-09-27') {
   const all=rows.filter(x=>x.key===key&&x.scope===scope);
   const active=all.filter(x=>x.status==='active');
   const revoked=all.filter(x=>x.status==='revoked');
-  if (!active.length) return {status:'unknown',decision:'Ask a human before acting.',reason:revoked.length?'The only matching memory was revoked.':'No scoped memory is available.',evidence:all};
+  if (!active.length) return {status:'unknown',decision:'Ask a human before acting.',reason:revoked.length?'The only matching memory was revoked.':'No scoped memory is available.',evidence:[]};
   const ordered=[...active].sort((a,b)=>b.observedAt.localeCompare(a.observedAt));
   const newest=ordered[0];
   const age=Math.max(0,Math.floor((Date.parse(now)-Date.parse(newest.observedAt))/86400000));

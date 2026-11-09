@@ -5,3 +5,14 @@ test('revocation prevents retrieval',()=>assert.equal(assess([{...seed[3],status
 test('scope prevents cross-order leak',()=>assert.equal(assess(seed,'contact-number','Order B19').status,'unknown'));
 test('current confirmed claim is usable',()=>assert.equal(assess([{...seed[1],observedAt:'2026-09-27'}],'preferred-window','Order A17').status,'usable'));
 test('store persists revocation',()=>{let val;const storage={getItem:()=>val,setItem:(_,v)=>{val=v}};const store=createStore(storage);store.revoke('m4');assert.equal(store.read().find(x=>x.id==='m4').status,'revoked')});
+
+test('revocation excludes values from retrieval and purge removes them from storage', async () => {
+  const {createStore,assess} = await import('../engine.js');
+  let raw;
+  const store = createStore({getItem:()=>raw,setItem:(_,value)=>{raw=value;}});
+  store.revoke('m4');
+  assert.deepEqual(assess(store.read(),'contact-number','Order A17').evidence,[]);
+  store.purge('m4');
+  assert.deepEqual(store.read().find(x=>x.id==='m4'),{id:'m4',status:'purged'});
+  assert.ok(!raw.includes('Private phone stored for this order'));
+});
